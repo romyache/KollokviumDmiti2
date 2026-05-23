@@ -1,3 +1,11 @@
+from integers.POZ_Z_D import POZ_Z_D
+from integers.ABS_Z_N import ABS_Z_N
+from natural.COM_NN_D import COM_NN_D
+from natural.ADD_NN_N import ADD_NN_N
+from natural.SUB_NN_N import SUB_NN_N
+from integers.MUL_ZM_Z import MUL_ZM_Z
+
+
 def ADD_ZZ_Z(a: dict, b: dict) -> dict:
     """
     Z-6 ADD_ZZ_Z — сложение целых чисел.
