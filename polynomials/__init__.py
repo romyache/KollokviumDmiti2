@@ -1,0 +1,13 @@
+from polynomials.ADD_PP_P import ADD_PP_P   # P-1
+from polynomials.SUB_PP_P import SUB_PP_P   # P-2
+from polynomials.MUL_PQ_P import MUL_PQ_P   # P-3
+from polynomials.MUL_Pxk_P import MUL_Pxk_P # P-4
+from polynomials.LED_P_Q import LED_P_Q     # P-5
+from polynomials.DEG_P_N import DEG_P_N     # P-6
+from polynomials.FAC_P_Q import FAC_P_Q     # P-7
+from polynomials.MUL_PP_P import MUL_PP_P   # P-8
+from polynomials.DIV_PP_P import DIV_PP_P   # P-9
+from polynomials.MOD_PP_P import MOD_PP_P   # P-10
+from polynomials.GCF_PP_P import GCF_PP_P   # P-11
+from polynomials.DER_P_P import DER_P_P     # P-12
+from polynomials.NMR_P_P import NMR_P_P     # P-13

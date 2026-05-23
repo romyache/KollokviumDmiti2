@@ -1,0 +1,10 @@
+from integers.ABS_Z_N import ABS_Z_N     # Z-1
+from integers.POZ_Z_D import POZ_Z_D     # Z-2
+from integers.MUL_ZM_Z import MUL_ZM_Z   # Z-3
+from integers.TRANS_N_Z import TRANS_N_Z # Z-4
+from integers.TRANS_Z_N import TRANS_Z_N # Z-5
+from integers.ADD_ZZ_Z import ADD_ZZ_Z   # Z-6
+from integers.SUB_ZZ_Z import SUB_ZZ_Z   # Z-7
+from integers.MUL_ZZ_Z import MUL_ZZ_Z   # Z-8
+from integers.DIV_ZZ_Z import DIV_ZZ_Z   # Z-9
+from integers.MOD_ZZ_Z import MOD_ZZ_Z   # Z-10
