@@ -4,7 +4,6 @@
 
 import sys
 
-# ── Импорты всех модулей ──────────────────────────────────────────────────────
 from natural import from_int, to_int, to_str
 from natural import (COM_NN_D, NZER_N_B, ADD_1N_N, ADD_NN_N, SUB_NN_N,
                      MUL_ND_N, MUL_Nk_N, MUL_NN_N, SUB_NDN_N,
@@ -19,11 +18,82 @@ from polynomials import (ADD_PP_P, SUB_PP_P, MUL_PQ_P, MUL_Pxk_P,
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# Парсер многочленов из строки вида "x^2 + 3x - 1"
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _make_q(num, den):
+    n = from_int(abs(num))
+    z_num = {'sign': 1 if num < 0 else 0, 'n': n['n'], 'digits': n['digits']}
+    return RED_Q_Q({'num': z_num, 'den': from_int(den)})
+
+
+def parse_polynomial(s):
+    """
+    Парсит строку вида 'x^100 + 2x - 1/2' в многочлен.
+    Поддерживает: x^n, x, числа, коэффициенты вида 3/4.
+    """
+    s = s.replace(' ', '').replace('-', '+-')
+    if s.startswith('+'):
+        s = s[1:]
+
+    terms = s.split('+')
+    coeffs_dict = {}
+
+    for term in terms:
+        if not term:
+            continue
+        if 'x' in term:
+            parts = term.split('x')
+            coef_str = parts[0]
+            if coef_str in ('', '+'):
+                num, den = 1, 1
+            elif coef_str == '-':
+                num, den = -1, 1
+            elif '/' in coef_str:
+                n, d = coef_str.split('/')
+                num, den = int(n), int(d)
+            else:
+                num, den = int(coef_str), 1
+            deg_str = parts[1]
+            if deg_str in ('', '+'):
+                deg = 1
+            elif deg_str.startswith('^'):
+                deg = int(deg_str[1:])
+            else:
+                deg = int(deg_str)
+        else:
+            if '/' in term:
+                n, d = term.split('/')
+                num, den = int(n), int(d)
+            else:
+                num, den = int(term), 1
+            deg = 0
+
+        if deg in coeffs_dict:
+            en, ed = coeffs_dict[deg]
+            num = num * ed + en * den
+            den = den * ed
+        coeffs_dict[deg] = (num, den)
+
+    if not coeffs_dict:
+        return {'m': 0, 'coeffs': [_make_q(0, 1)]}
+
+    max_deg = max(coeffs_dict.keys())
+    coeffs = []
+    for i in range(max_deg + 1):
+        if i in coeffs_dict:
+            n, d = coeffs_dict[i]
+            coeffs.append(_make_q(n, d))
+        else:
+            coeffs.append(_make_q(0, 1))
+    return {'m': max_deg, 'coeffs': coeffs}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # Вспомогательные функции ввода/вывода
 # ══════════════════════════════════════════════════════════════════════════════
 
 def input_natural(prompt):
-    """Ввод натурального числа с клавиатуры."""
     while True:
         s = input(prompt).strip()
         if s.isdigit():
@@ -32,7 +102,6 @@ def input_natural(prompt):
 
 
 def input_integer(prompt):
-    """Ввод целого числа с клавиатуры."""
     while True:
         s = input(prompt).strip()
         try:
@@ -44,7 +113,6 @@ def input_integer(prompt):
 
 
 def input_rational(prompt):
-    """Ввод рационального числа в формате числитель/знаменатель."""
     print(f"{prompt} (формат: числитель/знаменатель, например 3/4 или -1/2)")
     while True:
         s = input("  > ").strip()
@@ -61,69 +129,40 @@ def input_rational(prompt):
                 den = 1
             n = from_int(abs(num))
             z_num = {'sign': 1 if num < 0 else 0, 'n': n['n'], 'digits': n['digits']}
-            q = {'num': z_num, 'den': from_int(den)}
-            return RED_Q_Q(q)
+            return RED_Q_Q({'num': z_num, 'den': from_int(den)})
         except (ValueError, IndexError):
             print("  Ошибка: введите число в формате 3/4 или -1/2.")
 
 
 def input_polynomial(prompt):
-    """Ввод многочлена по ненулевым коэффициентам."""
-    print(f"{prompt}")
-    print("  Формат: степень:коэффициент через пробел")
-    print("  Пример: 0:1 2:3/2 5:-1  →  1 + (3/2)x² - x⁵")
+    """
+    Ввод многочлена — можно вводить формулой (x^2 + 3x - 1)
+    или по коэффициентам.
+    """
+    if prompt:
+        print(prompt)
+    print("  Введите многочлен формулой (например: x^2 + 3x - 1)")
+    print("  или нажмите Enter для ввода по коэффициентам.")
+    s = input("  > ").strip()
+    if s:
+        try:
+            return parse_polynomial(s)
+        except Exception as e:
+            print(f"  Не удалось распарсить: {e}. Переключаюсь на ввод по коэффициентам.")
 
     while True:
-        s = input("  > ").strip()
-
-        if s == 'полный':
-            # старый способ
-            try:
-                deg = int(input("  Степень: ").strip())
-                coeffs_dict = {}
-                for i in range(deg + 1):
-                    coeffs_dict[i] = input_rational(f"  Коэффициент при x^{i}")
-                coeffs = [coeffs_dict[i] for i in range(deg + 1)]
-                return {'m': deg, 'coeffs': coeffs}
-            except ValueError:
-                print("  Ошибка.")
-                continue
-
         try:
-            zero_q = {'num': {'sign': 0, 'n': 0, 'digits': [0]},
-                      'den': {'n': 0, 'digits': [1]}}
-
-            pairs = s.split()
-            if not pairs:
-                print("  Введите хотя бы один коэффициент.")
+            deg = int(input("  Степень многочлена: ").strip())
+            if deg < 0:
+                print("  Ошибка: степень должна быть >= 0.")
                 continue
-
-            coeffs_dict = {}
-            for pair in pairs:
-                deg_str, coef_str = pair.split(':')
-                deg = int(deg_str.strip())
-                # парсим коэффициент вручную
-                coef_str = coef_str.strip()
-                if '/' in coef_str:
-                    parts = coef_str.split('/')
-                    num = int(parts[0])
-                    den = int(parts[1])
-                else:
-                    num = int(coef_str)
-                    den = 1
-                n = from_int(abs(num))
-                z_num = {'sign': 1 if num < 0 else 0,
-                         'n': n['n'], 'digits': n['digits']}
-                from rationals.RED_Q_Q import RED_Q_Q
-                q = RED_Q_Q({'num': z_num, 'den': from_int(den)})
-                coeffs_dict[deg] = q
-
-            max_deg = max(coeffs_dict.keys())
-            coeffs = [coeffs_dict.get(i, zero_q) for i in range(max_deg + 1)]
-            return {'m': max_deg, 'coeffs': coeffs}
-
-        except Exception as e:
-            print(f"  Ошибка: {e}. Попробуй ещё раз.")
+            coeffs = []
+            for i in range(deg + 1):
+                q = input_rational(f"  Коэффициент при x^{i}")
+                coeffs.append(q)
+            return {'m': deg, 'coeffs': coeffs}
+        except ValueError:
+            print("  Ошибка: введите целое число для степени.")
 
 
 def nat_to_str(a):
@@ -149,7 +188,6 @@ def poly_to_str(p):
     terms = []
     for i in range(p['m'] + 1):
         c = rat_to_str(p['coeffs'][i])
-        # пропускаем нулевые коэффициенты (кроме константного многочлена)
         num_val = to_int({'n': p['coeffs'][i]['num']['n'], 'digits': p['coeffs'][i]['num']['digits']})
         if num_val == 0 and p['m'] > 0:
             continue
@@ -325,28 +363,48 @@ def _rat_bin(fn, op):
 
 def menu_polynomials():
     ops = {
-        '1':  ('Сложение (ADD_PP_P)',               lambda: _poly_bin(ADD_PP_P, '+')),
-        '2':  ('Вычитание (SUB_PP_P)',              lambda: _poly_bin(SUB_PP_P, '-')),
-        '3':  ('Умножение (MUL_PP_P)',              lambda: _poly_bin(MUL_PP_P, '*')),
-        '4':  ('Деление (DIV_PP_P)',                lambda: _poly_bin(DIV_PP_P, '//')),
-        '5':  ('Остаток (MOD_PP_P)',                lambda: _poly_bin(MOD_PP_P, 'mod')),
-        '6':  ('НОД (GCF_PP_P)',                    lambda: _poly_bin(GCF_PP_P, 'НОД')),
-        '7':  ('Производная (DER_P_P)',             lambda: _poly_one(DER_P_P, "P'")),
-        '8':  ('Старший коэффициент (LED_P_Q)',     lambda: _poly_lead()),
-        '9':  ('Степень (DEG_P_N)',                 lambda: _poly_deg()),
-        '10': ('Умножить на x^k (MUL_Pxk_P)',      lambda: _poly_mul_xk()),
-        '11': ('Умножить на рац. число (MUL_PQ_P)', lambda: _poly_mul_q()),
-        '12': ('Вынести множитель (FAC_P_Q)',       lambda: _poly_fac()),
-        '13': ('Кратные корни → простые (NMR_P_P)', lambda: _poly_one(NMR_P_P, 'NMR')),
+        '1':  ('Сложение (ADD_PP_P)',                lambda: _poly_bin(ADD_PP_P, '+')),
+        '2':  ('Вычитание (SUB_PP_P)',               lambda: _poly_bin(SUB_PP_P, '-')),
+        '3':  ('Умножение (MUL_PP_P)',               lambda: _poly_bin(MUL_PP_P, '*')),
+        '4':  ('Деление (DIV_PP_P)',                 lambda: _poly_bin(DIV_PP_P, '//')),
+        '5':  ('Остаток (MOD_PP_P)',                 lambda: _poly_bin(MOD_PP_P, 'mod')),
+        '6':  ('НОД (GCF_PP_P)',                     lambda: _poly_bin(GCF_PP_P, 'НОД')),
+        '7':  ('Производная (DER_P_P)',              lambda: _poly_one(DER_P_P, "P'")),
+        '8':  ('Старший коэффициент (LED_P_Q)',      lambda: _poly_lead()),
+        '9':  ('Степень (DEG_P_N)',                  lambda: _poly_deg()),
+        '10': ('Умножить на x^k (MUL_Pxk_P)',       lambda: _poly_mul_xk()),
+        '11': ('Умножить на рац. число (MUL_PQ_P)',  lambda: _poly_mul_q()),
+        '12': ('Вынести множитель (FAC_P_Q)',        lambda: _poly_fac()),
+        '13': ('Кратные корни → простые (NMR_P_P)',  lambda: _poly_one(NMR_P_P, 'NMR')),
     }
     _run_menu("МНОГОЧЛЕНЫ", ops)
 
 
 def _poly_bin(fn, op):
-    print("  Введите первый многочлен:")
-    a = input_polynomial("")
-    print("  Введите второй многочлен:")
-    b = input_polynomial("")
+    print("  Введите два многочлена через ' / ' (например: x^2 + 1 / x + 1)")
+    print("  или нажмите Enter для раздельного ввода.")
+    s = input("  > ").strip()
+    if s and ' / ' in s:
+        try:
+            parts = s.split(' / ', 1)
+            a = parse_polynomial(parts[0].strip())
+            b = parse_polynomial(parts[1].strip())
+        except Exception as e:
+            print(f"  Не удалось распарсить: {e}")
+            return
+    elif s:
+        try:
+            a = parse_polynomial(s)
+        except Exception as e:
+            print(f"  Не удалось распарсить: {e}")
+            return
+        print("  Введите второй многочлен:")
+        b = input_polynomial("")
+    else:
+        print("  Введите первый многочлен:")
+        a = input_polynomial("")
+        print("  Введите второй многочлен:")
+        b = input_polynomial("")
     try:
         r = fn(a, b)
         print(f"  ({poly_to_str(a)}) {op} ({poly_to_str(b)}) = {poly_to_str(r)}")
@@ -435,9 +493,9 @@ def show_help():
 ║                                                              ║
 ║  4. МНОГОЧЛЕНЫ (P)                                           ║
 ║     Вида a0 + a1*x + a2*x^2 + ...                            ║
-║     Вводятся по коэффициентам: сначала степень,              ║
-║     затем коэффициенты при x^0, x^1, x^2, ...               ║
-║     Коэффициенты — рациональные числа                        ║
+║     Можно вводить формулой: x^100 + 2x - 1                   ║
+║     Или по коэффициентам (нажмите Enter на пустой строке)    ║
+║     Поддерживаются дробные коэффициенты: 3/4 x^2 + 1/2      ║
 ║                                                              ║
 ║  Все числа имеют произвольную точность (длинная арифметика)  ║
 ╚══════════════════════════════════════════════════════════════╝
