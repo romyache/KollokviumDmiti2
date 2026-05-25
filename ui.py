@@ -68,21 +68,62 @@ def input_rational(prompt):
 
 
 def input_polynomial(prompt):
-    """Ввод многочлена по коэффициентам."""
+    """Ввод многочлена по ненулевым коэффициентам."""
     print(f"{prompt}")
+    print("  Формат: степень:коэффициент через пробел")
+    print("  Пример: 0:1 2:3/2 5:-1  →  1 + (3/2)x² - x⁵")
+
     while True:
-        try:
-            deg = int(input("  Степень многочлена: ").strip())
-            if deg < 0:
-                print("  Ошибка: степень должна быть >= 0.")
+        s = input("  > ").strip()
+
+        if s == 'полный':
+            # старый способ
+            try:
+                deg = int(input("  Степень: ").strip())
+                coeffs_dict = {}
+                for i in range(deg + 1):
+                    coeffs_dict[i] = input_rational(f"  Коэффициент при x^{i}")
+                coeffs = [coeffs_dict[i] for i in range(deg + 1)]
+                return {'m': deg, 'coeffs': coeffs}
+            except ValueError:
+                print("  Ошибка.")
                 continue
-            coeffs = []
-            for i in range(deg + 1):
-                q = input_rational(f"  Коэффициент при x^{i}")
-                coeffs.append(q)
-            return {'m': deg, 'coeffs': coeffs}
-        except ValueError:
-            print("  Ошибка: введите целое число для степени.")
+
+        try:
+            zero_q = {'num': {'sign': 0, 'n': 0, 'digits': [0]},
+                      'den': {'n': 0, 'digits': [1]}}
+
+            pairs = s.split()
+            if not pairs:
+                print("  Введите хотя бы один коэффициент.")
+                continue
+
+            coeffs_dict = {}
+            for pair in pairs:
+                deg_str, coef_str = pair.split(':')
+                deg = int(deg_str.strip())
+                # парсим коэффициент вручную
+                coef_str = coef_str.strip()
+                if '/' in coef_str:
+                    parts = coef_str.split('/')
+                    num = int(parts[0])
+                    den = int(parts[1])
+                else:
+                    num = int(coef_str)
+                    den = 1
+                n = from_int(abs(num))
+                z_num = {'sign': 1 if num < 0 else 0,
+                         'n': n['n'], 'digits': n['digits']}
+                from rationals.RED_Q_Q import RED_Q_Q
+                q = RED_Q_Q({'num': z_num, 'den': from_int(den)})
+                coeffs_dict[deg] = q
+
+            max_deg = max(coeffs_dict.keys())
+            coeffs = [coeffs_dict.get(i, zero_q) for i in range(max_deg + 1)]
+            return {'m': max_deg, 'coeffs': coeffs}
+
+        except Exception as e:
+            print(f"  Ошибка: {e}. Попробуй ещё раз.")
 
 
 def nat_to_str(a):
